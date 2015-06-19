@@ -6,23 +6,13 @@
   </head>
   <body>
         <div id="wrapper">
-            <pre>. **       **         **      **                   **
-/**      /**        /**     /**                  /**
-/**   *  /**  ***** /**     /**  ******    ***** /**  **
-/**  *** /** **///**/********** //////**  **///**/** **
-/** **/**/**/*******/**//////**  ******* /**  // /****
-/**** //****/**//// /**     /** **////** /**   **/**/**
-/**/   ///**//******/**     /**//********//***** /**//**
-//       //  ////// //      //  ////////  /////  //  //
-</pre>
             <p>Node.js server to collect HID RFID card info.</p>
             <p>-----------------------------</p>
-            <h4>Key Card value:</h4>
-            <p>Card Code: <span id="cc"><%= cardCode %></span></p>
-            <p>Facility Code: <span id="fc"><%= facilityCode %></span></p>
-            <p>Binary: <span id="bn"><%= binary %></span></p>
+            <h3>Key Card value</h3>
+            <p>Card Code: <b id="cc"><%= cardCode %></b></p>
+            <p>Facility Code: <b id="fc"><%= facilityCode %></b></p>
+            <p>Binary: <b id="bn"><%= binary %></b></p>
             <p>-----------------------------</p>
-
         </div>
         <script src="/socket.io/socket.io.js"></script>
         <script>

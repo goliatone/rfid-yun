@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+        <div id="wrapper">
+            <pre>. **       **         **      **                   **
+/**      /**        /**     /**                  /**
+/**   *  /**  ***** /**     /**  ******    ***** /**  **
+/**  *** /** **///**/********** //////**  **///**/** **
+/** **/**/**/*******/**//////**  ******* /**  // /****
+/**** //****/**//// /**     /** **////** /**   **/**/**
+/**/   ///**//******/**     /**//********//***** /**//**
+//       //  ////// //      //  ////////  /////  //  //
+</pre>
+            <p>Node.js server to collect HID RFID card info.</p>
+            <p>-----------------------------</p>
+            <h4>Key Card value:</h4>
+            <p>Card Code: <span id="cc"><%= cardCode %></span></p>
+            <p>Facility Code: <span id="fc"><%= facilityCode %></span></p>
+            <p>Binary: <span id="bn"><%= binary %></span></p>
+            <p>-----------------------------</p>
+
+        </div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            var socket = io.connect();
+            socket.on('/rfid', function(payload){
+                console.log('RFID', payload);
+                document.getElementById('bn').innerHTML = payload.binary;
+                document.getElementById('cc').innerHTML = payload.cardCode;
+                document.getElementById('fc').innerHTML = payload.facilityCode;
+            });
+        </script>
+    </body>
+</html>

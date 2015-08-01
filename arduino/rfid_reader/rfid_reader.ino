@@ -53,7 +53,7 @@ String LOCAL_NAME = "sensuino.local";
  * "goliatodromo.local" did not work :/
  */
 String HOST = "192.168.1.145";
-String PORT = "3000";
+String PORT = "3030";
 String CMD = "/usr/bin/curl -k -H \"Content-Type: application/json\" -X POST http://" + HOST + ":"+ PORT + "/rfid -d";
 /*
  * interrupt that happens when

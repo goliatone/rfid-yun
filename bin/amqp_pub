@@ -5,11 +5,18 @@ import sys, pika, os, json
 import argparse, traceback, ConfigParser
 
 
-def configure(config_path='config.ini'):
+def resolve(path):
+    dir = os.path.dirname(__file__)
+    return os.path.join(dir, path)
+
+
+def configure(config_path='./config.ini'):
     """
     Load configuration file and retrieve
     AMQP settings
     """
+    config_path = resolve(config_path)
+
     config = {}
     parser = ConfigParser.ConfigParser()
     parser.read(config_path)

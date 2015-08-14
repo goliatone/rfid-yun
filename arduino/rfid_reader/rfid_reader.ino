@@ -53,8 +53,9 @@ String LOCAL_NAME = "sensuino.local";
  * "goliatodromo.local" did not work :/
  */
 String HOST = "192.168.1.145";
-String PORT = "3030";
+String PORT = "9090";
 String CMD = "/usr/bin/curl -k -H \"Content-Type: application/json\" -X POST http://" + HOST + ":"+ PORT + "/rfid -d";
+String SHELL = "/mnt/sda1/arduino/www/amqp_pub";
 /*
  * interrupt that happens when
  * INTO goes low (0 bit)
@@ -92,6 +93,7 @@ void setup()
     Serial.println("RFID Readers");
 
     HOST = getIP(LOCAL_NAME);
+    CMD = getCmd(HOST);
 
     Serial.println("---");
     Serial.println("Setting ip to " + HOST);
@@ -104,6 +106,11 @@ void setup()
 
 
     weigand_counter = WEIGAND_WAIT_TIME;
+}
+
+String getCmd( String ip)
+{
+  return "/usr/bin/curl -k -H \"Content-Type: application/json\" -X POST http://" + ip + ":"+ PORT + "/rfid -d";
 }
 
 String getIP(String localName)
@@ -148,16 +155,6 @@ void loop()
         Serial.print(bitCount);
         Serial.print(" bits. ");
 
-        Serial.println("");
-        Serial.print("BIN ");
-        binaryString = "";
-        for (i=0; i<25; i++)
-        {
-            binaryString += String(databits[i]);
-        }
-        Serial.print(binaryString);
-
-
         /*
          * We could add support for other card
          * formats, but right now 26 is what
@@ -165,6 +162,15 @@ void loop()
          */
         if (bitCount == 26)
         {
+            Serial.println("");
+            Serial.print("BIN ");
+            binaryString = "";
+            for (i=0; i<25; i++)
+            {
+                binaryString += String(databits[i]);
+            }
+            Serial.print(binaryString);
+
             Serial.println("");
             Serial.print("FC: ");
             // standard 26 bit format
@@ -175,27 +181,56 @@ void loop()
                 facilityCode |= databits[i];
                 Serial.print(databits[i]);
             }
-        Serial.println("");
-        Serial.print("CC: ");
-        // card code = bits 10 to 25
-        for (i=10; i<25; i++)
-        {
-            cardCode <<=1;
-            cardCode |= databits[i];
-            Serial.print(databits[i]);
-        }
+            Serial.println("");
+            Serial.print("CC: ");
+            // card code = bits 10 to 25
+            for (i=10; i<25; i++)
+            {
+              cardCode <<=1;
+              cardCode |= databits[i];
+              Serial.print(databits[i]);
+            }
 
-        printBits();
-    } else {
-        // you can add other formats if you want!
-        Serial.println("Unable to decode.");
-    }
-        // cleanup and get ready for the next card
-        bitCount = 0; facilityCode = 0; cardCode = 0;
-        for (i=0; i<26; i++)
-        {
-            databits[i] = 0;
-        }
+            printBits();
+
+          } else  if (bitCount == 36) {
+
+            Serial.println("");
+            Serial.print("BIN ");
+            binaryString = "";
+            for (i=0; i<MAX_BITS; i++)
+            {
+                binaryString += String(databits[i]);
+            }
+            Serial.print(binaryString);
+
+            // 35 bit HID Corporate 1000 format
+            // facility code = bits 2 to 14
+            for (i=2; i<14; i++)
+            {
+              facilityCode <<=1;
+              facilityCode |= databits[i];
+            }
+
+            // card code = bits 15 to 34
+            for (i=14; i<35; i++)
+            {
+              cardCode <<=1;
+              cardCode |= databits[i];
+            }
+
+            printBits();
+
+          } else {
+            // you can add other formats if you want!
+            Serial.println("Unable to decode.");
+          }
+          // cleanup and get ready for the next card
+          bitCount = 0; facilityCode = 0; cardCode = 0;
+          for (i=0; i<MAX_BITS; i++)
+          {
+              databits[i] = 0;
+          }
     }
 }
 
@@ -208,15 +243,48 @@ void printBits()
     Serial.println(cardCode);
     Serial.println("");
 
-    String json = "";
-    json += " '{ \"cc\" : " + String(cardCode) + ", ";
-    json += "\"bn\" : \"" + binaryString + "\", ";
-    json += "\"fc\" : "+String(facilityCode)+"}'";
+    sendShell();
+    sendJson();
+}
 
+void sendShell()
+{
+    String args = getArgs(cardCode, binaryString, facilityCode);
+    Process p;
+    p.runShellCommandAsynchronously(SHELL + args);
+//    while(p.running());
+//    p.close();
+    Serial.println("Payload sent to shell");
+    Serial.println(SHELL + args);
+}
+
+void sendJson()
+{
+    String json = getJson(cardCode, binaryString, facilityCode);
     Process p;
     p.runShellCommand(CMD + json);
     while(p.running());
     p.close();
-    Serial.println("Payload sent!");
+    Serial.println("Payload sent to HTTP server");
     Serial.println(CMD + json);
 }
+
+String getJson( unsigned long cc, String bs, unsigned long fc)
+{
+  String json = "";
+    json += " '{ \"cc\" : " + String(cc) + ", ";
+    json += "\"bn\" : \"" + bs + "\", ";
+    json += "\"fc\" : "+String(fc)+"}'";
+    return json;
+
+}
+
+String getArgs( unsigned long cc, String bs, unsigned long fc)
+{
+    String args = " ";
+    args += "-cc " + String(cc) + " ";
+    args += "-bn " + bs + " ";
+    args += "-fc "+ String(fc);
+    return args;
+}
+

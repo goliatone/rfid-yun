@@ -1,0 +1,118 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys, pika, os, json
+import argparse, traceback, ConfigParser
+
+
+def resolve(path):
+    dir = os.path.dirname(__file__)
+    return os.path.join(dir, path)
+
+
+def configure(config_path='./config.ini'):
+    """
+    Load configuration file and retrieve
+    AMQP settings
+    """
+    config_path = resolve(config_path)
+
+    config = {}
+    parser = ConfigParser.ConfigParser()
+    parser.read(config_path)
+
+    config['url'] = parser.get('amqp', 'url')
+    config['exchange'] = parser.get('amqp', 'exchange')
+    config['routing_key'] = parser.get('amqp', 'routing_key')
+
+    return argparse.Namespace(**config)
+
+
+def parse_args(routing_key):
+    """
+    Parse arguments, we expect to get:
+    - card-code: RFID card code, ascii
+    - binary-string: RFID card code binary representation
+    - facility-code: RFID card facility code
+    - routing-key: The AMQP topic, usually in the form 'topic.uuid'
+    """
+    parser = argparse.ArgumentParser(description='AMQP Python CLI client for RFID reader')
+    parser.add_argument('-cc', '--card-code',
+                        dest='card_code',
+                        required=True, help='RFID card code')
+    parser.add_argument('-bn', '--binary-string',
+                        dest='binary_string',
+                        required=True, help='RFID binary string')
+    parser.add_argument('-fc', '--facility-code',
+                        dest='facility_code',
+                        required=True, help='RFID facility code')
+    parser.add_argument('-rk', '--routing-key',
+                        dest='routing_key',
+                        default=routing_key,
+                        required=False, help='AMQP routing key')
+
+    return parser.parse_args()
+
+
+def create_connection(url, exchange):
+    """
+    Create AMQP connection using 'topic' strategy
+    """
+    print "connect to %r exchange %r" %(url, exchange)
+    params = pika.URLParameters(url)
+    params.socket_timeout = 5
+    connection = pika.BlockingConnection(params)
+    chan = connection.channel()
+    chan.exchange_declare(exchange= exchange,
+                             auto_delete=True,
+                             type='topic')
+    return chan, connection
+
+
+def get_payload(routing_key):
+    args = parse_args(routing_key)
+    message = {
+        'cc': args.card_code,
+        'bn': args.binary_string,
+        'fc': args.facility_code
+    }
+    return message
+
+def publish(channel, exchange, routing_key, message):
+    channel.basic_publish(exchange= exchange,
+                          routing_key=routing_key,
+                          body=json.dumps(message),
+                          properties=pika.BasicProperties(content_type='application/json')
+                        )
+    print " topic: %r\n message: %r\n exchange: %r" % (routing_key, message, exchange)
+
+
+def main():
+    # Load configuration
+    conf = configure(config_path='config.ini')
+
+    # Parse payload
+    message = get_payload(conf.routing_key)
+
+    # Create AMQP connection
+    channel, connection = create_connection(conf.url, conf.exchange)
+
+    # Publish message to topic / routing key
+    publish(channel, conf.exchange, conf.routing_key, message)
+
+    # Clean up!
+    connection.close()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+        sys.exit(0)
+    except KeyboardInterrupt, e:
+        raise e
+    except SystemExit, e:
+        raise e
+    except Exception, e:
+        print str(e)
+        traceback.print_exc()
+        sys.exit(1)

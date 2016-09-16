@@ -101,8 +101,8 @@ void setup()
     // binds the ISR functions to the falling edge of INTO and INT1
     // Had to invert the values here, as the code
     // was not reading the right codes.
-    attachInterrupt(1, ISR_INT0, RISING);
-    attachInterrupt(0, ISR_INT1, RISING);
+    attachInterrupt(0, ISR_INT0, RISING);
+    attachInterrupt(1, ISR_INT1, RISING);
 
 
     weigand_counter = WEIGAND_WAIT_TIME;

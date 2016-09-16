@@ -7,7 +7,7 @@
  * Wiegand HID 26 bit card reader.
  * Format:
  * Parity |<-Facility Code->| <---------------  Card Code  -------------->
- *    0 1 | 2 3 4 5 6 7 8 9 | 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+ *    0 | 1 2 3 4 5 6 7 8 9 | 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
  *
  * More here: http://www.pagemac.com/azure/data_formats.php
  */
@@ -165,7 +165,7 @@ void loop()
             Serial.println("");
             Serial.print("BIN ");
             binaryString = "";
-            for (i=0; i<25; i++)
+            for (i=0; i<26; i++)
             {
                 binaryString += String(databits[i]);
             }
@@ -175,7 +175,7 @@ void loop()
             Serial.print("FC: ");
             // standard 26 bit format
             // 2 parity bits. 8 facility code
-            for (i=2; i<10; i++)
+            for (i = 1; i < 9; i++)
             {
                 facilityCode <<=1;
                 facilityCode |= databits[i];
@@ -184,7 +184,7 @@ void loop()
             Serial.println("");
             Serial.print("CC: ");
             // card code = bits 10 to 25
-            for (i=10; i<25; i++)
+            for (i = 9; i < 25; i++)
             {
               cardCode <<=1;
               cardCode |= databits[i];
